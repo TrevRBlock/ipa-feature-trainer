@@ -784,7 +784,7 @@ function clearAllSounds() {
 
           if (selectedValue !== correctValue) {
             errors.push({
-              feature: `${place.toUpperCase()} [±${feature}]`,
+              feature: `[±${feature}]`,
               selected: displayFeatureAnswer(
                 feature,
                 selectedValue,
