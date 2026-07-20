@@ -704,13 +704,7 @@ function App() {
 }
 
 function clearHistory() {
-  const confirmed = window.confirm(
-    "Clear all saved attempt history?",
-  );
-
-  if (confirmed) {
-    setHistory([]);
-  }
+  setHistory([]);
 }
 
 function selectAllSounds() {
