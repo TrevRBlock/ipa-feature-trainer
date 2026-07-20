@@ -22,6 +22,7 @@ const consonantFeatureNames = [
   "continuant",
   "nasal",
   "lateral",
+  "D.R."
 ] as const;
 
 const vowelFeatureNames = [
@@ -290,7 +291,7 @@ const sounds: Sound[] = [
   consonant(
     "t͡ʃ",
     "voiceless postalveolar affricate",
-    ["consonantal"],
+    ["consonantal", "D.R."],
     {
       coronal: {
         anterior: "-",
@@ -302,7 +303,7 @@ const sounds: Sound[] = [
   consonant(
     "d͡ʒ",
     "voiced postalveolar affricate",
-    ["consonantal", "voice"],
+    ["consonantal", "voice", "D.R."],
     {
       coronal: {
         anterior: "-",
