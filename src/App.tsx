@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 
 type FeatureValue = "+" | "-";
@@ -6,12 +6,19 @@ type SoundCategory = "consonant" | "vowel";
 type FeatureMap = Record<string, FeatureValue>;
 type PlaceName = "labial" | "coronal" | "dorsal";
 
-interface Sound {
+interface HistoryError {
+  feature: string;
+  selected: string;
+  correct: string;
+}
+
+interface HistoryEntry {
+  id: string;
   symbol: string;
   description: string;
-  category: SoundCategory;
-  features: FeatureMap;
-  places?: Partial<Record<PlaceName, FeatureMap>>;
+  isCorrect: boolean;
+  errors: HistoryError[];
+  submittedAt: string;
 }
 
 const consonantFeatureNames = [
@@ -204,7 +211,7 @@ const sounds: Sound[] = [
 
   consonant(
     "θ",
-    "voiceless dental fricative",
+    "voiceless interdental fricative",
     ["consonantal", "continuant"],
     {
       coronal: {
@@ -216,7 +223,7 @@ const sounds: Sound[] = [
 
   consonant(
     "ð",
-    "voiced dental fricative",
+    "voiced interdental fricative",
     ["consonantal", "voice", "continuant"],
     {
       coronal: {
@@ -383,7 +390,7 @@ const sounds: Sound[] = [
 
   consonant(
     "ɹ",
-    "voiced postalveolar liquid",
+    "voiced alveolar rhotic liquid",
     [
       "consonantal",
       "sonorant",
@@ -392,7 +399,7 @@ const sounds: Sound[] = [
     ],
     {
       coronal: {
-        anterior: "-",
+        anterior: "+",
         strident: "-",
       },
     },
@@ -418,7 +425,7 @@ const sounds: Sound[] = [
 
   consonant(
     "w",
-    "voiced labial-velar glide",
+    "voiced labiovelar glide",
     [
       "consonantal",
       "sonorant",
@@ -443,31 +450,31 @@ const sounds: Sound[] = [
 
   vowel(
     "i",
-    "high front unrounded vowel, as in FLEECE",
+    "high front unrounded tense vowel, as in FLEECE",
     ["high", "tense"],
   ),
 
   vowel(
     "ɪ",
-    "near-high front unrounded vowel, as in KIT",
+    "high front unrounded lax vowel, as in KIT",
     ["high"],
   ),
 
   vowel(
     "ɛ",
-    "mid front unrounded vowel, as in DRESS",
+    "mid front unrounded lax vowel, as in DRESS",
     [],
   ),
 
   vowel(
     "æ",
-    "low front unrounded vowel, as in TRAP",
+    "low front unrounded lax vowel, as in TRAP",
     ["low"],
   ),
 
   vowel(
     "ɑ",
-    "low back unrounded vowel, as in LOT or PALM",
+    "low back unrounded lax vowel, as in LOT or PALM",
     ["low", "back"],
   ),
 
@@ -475,31 +482,31 @@ const sounds: Sound[] = [
 
   vowel(
     "ʊ",
-    "near-high back rounded vowel, as in FOOT",
+    "high back rounded lax vowel, as in FOOT",
     ["high", "back", "round"],
   ),
 
   vowel(
     "u",
-    "high back rounded vowel, as in GOOSE",
+    "high back rounded tense vowel, as in GOOSE",
     ["high", "back", "round", "tense"],
   ),
 
   vowel(
     "ʌ",
-    "mid central unrounded vowel, as in STRUT",
+    "mid central unrounded lax vowel, as in STRUT",
     ["back"],
   ),
 
   vowel(
     "ə",
-    "mid central vowel, or schwa",
+    "mid central unrounded lax vowel, or schwa",
     ["back"],
   ),
 
   vowel(
     "ɚ",
-    "mid central rhotic vowel, as in LEARN",
+    "mid central unrounded lax rhotic vowel, as in LEARN",
     ["back"],
   ),
 
@@ -543,6 +550,36 @@ function placeAnswerKey(
   return `${place}.${feature}`;
 }
 
+const HISTORY_STORAGE_KEY =
+  "ipa-feature-trainer-history";
+
+function loadHistory(): HistoryEntry[] {
+  try {
+    const savedHistory = localStorage.getItem(
+      HISTORY_STORAGE_KEY,
+    );
+
+    if (!savedHistory) {
+      return [];
+    }
+
+    return JSON.parse(savedHistory) as HistoryEntry[];
+  } catch {
+    return [];
+  }
+}
+
+function displayFeatureAnswer(
+  feature: string,
+  value: FeatureValue | undefined,
+): string {
+  if (value === undefined) {
+    return "Unanswered";
+  }
+
+  return `[${value}${feature}]`;
+}
+
 function App() {
   const [currentSound, setCurrentSound] = useState<Sound>(
   () => {
@@ -574,6 +611,17 @@ function App() {
     correct: 0,
     total: 0,
   });
+
+  const [history, setHistory] = useState<HistoryEntry[]>(
+  () => loadHistory(),
+  );
+
+    useEffect(() => {
+    localStorage.setItem(
+      HISTORY_STORAGE_KEY,
+      JSON.stringify(history),
+    );
+  }, [history]);
 
   const featureNames =
     currentSound.category === "consonant"
@@ -635,6 +683,16 @@ function App() {
   });
 }
 
+function clearHistory() {
+  const confirmed = window.confirm(
+    "Clear all saved attempt history?",
+  );
+
+  if (confirmed) {
+    setHistory([]);
+  }
+}
+
 function selectAllSounds() {
   setSelectedSymbols([...allSoundSymbols]);
 }
@@ -644,14 +702,35 @@ function clearAllSounds() {
 }
 
   function checkAnswer() {
-  const mainFeaturesCorrect = featureNames.every(
-    (feature) =>
-      answers[feature] === currentSound.features[feature],
-  );
+  const errors: HistoryError[] = [];
 
-  let placeNodesCorrect = true;
-  let placeFeaturesCorrect = true;
+  /*
+   * Check the ordinary binary features.
+   */
+  for (const feature of featureNames) {
+    const selectedValue = answers[feature];
+    const correctValue =
+      currentSound.features[feature];
 
+    if (selectedValue !== correctValue) {
+      errors.push({
+        feature: `[±${feature}]`,
+        selected: displayFeatureAnswer(
+          feature,
+          selectedValue,
+        ),
+        correct: displayFeatureAnswer(
+          feature,
+          correctValue,
+        ),
+      });
+    }
+  }
+
+  /*
+   * Check consonant place nodes and their
+   * dependent features.
+   */
   if (currentSound.category === "consonant") {
     for (const place of placeNames) {
       const expectedPlaceFeatures =
@@ -660,10 +739,24 @@ function clearAllSounds() {
       const shouldBeChecked =
         expectedPlaceFeatures !== undefined;
 
-      if (selectedPlaces[place] !== shouldBeChecked) {
-        placeNodesCorrect = false;
+      const isChecked = selectedPlaces[place];
+
+      if (isChecked !== shouldBeChecked) {
+        errors.push({
+          feature: `${place.toUpperCase()} node`,
+          selected: isChecked
+            ? "Checked"
+            : "Not checked",
+          correct: shouldBeChecked
+            ? "Checked"
+            : "Not checked",
+        });
       }
 
+      /*
+       * Check the dependent features whenever
+       * the target sound contains this place node.
+       */
       if (expectedPlaceFeatures) {
         for (const feature of placeDefinitions[place]) {
           const answerKey = placeAnswerKey(
@@ -671,21 +764,29 @@ function clearAllSounds() {
             feature,
           );
 
-          if (
-            answers[answerKey] !==
-            expectedPlaceFeatures[feature]
-          ) {
-            placeFeaturesCorrect = false;
+          const selectedValue = answers[answerKey];
+          const correctValue =
+            expectedPlaceFeatures[feature];
+
+          if (selectedValue !== correctValue) {
+            errors.push({
+              feature: `${place.toUpperCase()} [±${feature}]`,
+              selected: displayFeatureAnswer(
+                feature,
+                selectedValue,
+              ),
+              correct: displayFeatureAnswer(
+                feature,
+                correctValue,
+              ),
+            });
           }
         }
       }
     }
   }
 
-  const isCorrect =
-    mainFeaturesCorrect &&
-    placeNodesCorrect &&
-    placeFeaturesCorrect;
+  const isCorrect = errors.length === 0;
 
   setResult(isCorrect ? "correct" : "incorrect");
 
@@ -694,6 +795,24 @@ function clearAllSounds() {
       previousScore.correct + (isCorrect ? 1 : 0),
     total: previousScore.total + 1,
   }));
+
+  const newHistoryEntry: HistoryEntry = {
+    id: `${Date.now()}-${Math.random()}`,
+    symbol: currentSound.symbol,
+    description: currentSound.description,
+    isCorrect,
+    errors,
+    submittedAt: new Date().toISOString(),
+  };
+
+  /*
+   * Put the newest attempt first and retain
+   * the most recent 50 submissions.
+   */
+  setHistory((previousHistory) => [
+    newHistoryEntry,
+    ...previousHistory,
+  ].slice(0, 50));
 }
 
   function showNewRandomSound() {
@@ -1116,6 +1235,96 @@ return (
 </button>
         </section>
       )}
+
+      <section className="history-panel">
+  <div className="history-header">
+    <div>
+      <h2>Attempt history</h2>
+
+      <p>
+        Submitted answers are saved on this device.
+      </p>
+    </div>
+
+    {history.length > 0 && (
+      <button
+        type="button"
+        className="clear-history-button"
+        onClick={clearHistory}
+      >
+        Clear history
+      </button>
+    )}
+  </div>
+
+  {history.length === 0 ? (
+    <p className="history-empty">
+      No answers have been submitted yet.
+    </p>
+  ) : (
+    <div className="history-list">
+      {history.map((entry) => (
+        <article
+          className={`history-entry ${
+            entry.isCorrect
+              ? "correct-history-entry"
+              : "incorrect-history-entry"
+          }`}
+          key={entry.id}
+        >
+          <div className="history-entry-heading">
+            <span className="history-symbol">
+              /{entry.symbol}/
+            </span>
+
+            <span className="history-result">
+              {entry.isCorrect
+                ? "Correct"
+                : `${entry.errors.length} ${
+                    entry.errors.length === 1
+                      ? "error"
+                      : "errors"
+                  }`}
+            </span>
+          </div>
+
+          <p className="history-description">
+            {entry.description}
+          </p>
+
+          <p className="history-time">
+            {new Date(
+              entry.submittedAt,
+            ).toLocaleString()}
+          </p>
+
+          {!entry.isCorrect && (
+            <div className="history-errors">
+              {entry.errors.map((error, index) => (
+                <div
+                  className="history-error"
+                  key={`${entry.id}-${index}`}
+                >
+                  <strong>
+                    {error.feature}
+                  </strong>
+
+                  <span>
+                    Your answer: {error.selected}
+                  </span>
+
+                  <span>
+                    Correct: {error.correct}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </article>
+      ))}
+    </div>
+  )}
+</section>
         </main>
   </div>
 );
