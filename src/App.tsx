@@ -502,7 +502,7 @@ const sounds: Sound[] = [
 
   vowel(
     "ʌ",
-    "mid central unrounded lax vowel, as in STRUT",
+    "mid back unrounded lax vowel, as in STRUT",
     ["back"],
   ),
 
@@ -516,6 +516,18 @@ const sounds: Sound[] = [
     "ɚ",
     "mid central unrounded lax rhotic vowel, as in LEARN",
     ["back"],
+  ),
+
+  vowel(
+    "e",
+    "mid front unrounded tense vowel, beginning of the diphthong in BAIT",
+    ["tense"],
+  ),
+
+  vowel(
+    "o",
+    "mid back rounded tense vowel, beginning of the diphthong in BOAT",
+    ["back", "tense", "round"],
   ),
 
 ];
