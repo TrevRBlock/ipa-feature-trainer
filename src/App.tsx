@@ -757,7 +757,7 @@ function clearAllSounds() {
 
       if (isChecked !== shouldBeChecked) {
         errors.push({
-          feature: `${place.toUpperCase()} node`,
+          feature: `${place.toUpperCase()}`,
           selected: isChecked
             ? "Checked"
             : "Not checked",
