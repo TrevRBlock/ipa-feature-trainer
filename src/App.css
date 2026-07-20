@@ -75,11 +75,11 @@ button {
 }
 
 .sound-instructions {
-  max-width: 520px;
-  margin: 10px auto 0;
+  margin: 18px 0 8px;
   color: #5c6470;
   font-size: 14px;
   line-height: 1.4;
+  text-align: center;
 }
 
 .feature-row {

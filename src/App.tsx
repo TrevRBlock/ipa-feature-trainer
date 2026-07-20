@@ -958,15 +958,15 @@ return (
   </div>
 </header>
 
-      <section className="sound-card">
+  <p className="sound-instructions">
+  Select + or − for binary features. For consonants,
+  check every applicable place node.
+</p>
+
+<section className="sound-card">
   <div className="ipa-symbol">
     /{currentSound.symbol}/
   </div>
-
-  <p className="sound-instructions">
-    Select + or − for binary features. For consonants,
-    check every applicable place node.
-  </p>
 </section>
 
       <section className="features">
