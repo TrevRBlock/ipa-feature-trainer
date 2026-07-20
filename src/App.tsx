@@ -6,6 +6,14 @@ type SoundCategory = "consonant" | "vowel";
 type FeatureMap = Record<string, FeatureValue>;
 type PlaceName = "labial" | "coronal" | "dorsal";
 
+interface Sound {
+  symbol: string;
+  description: string;
+  category: SoundCategory;
+  features: FeatureMap;
+  places?: Partial<Record<PlaceName, FeatureMap>>;
+}
+
 interface HistoryError {
   feature: string;
   selected: string;
