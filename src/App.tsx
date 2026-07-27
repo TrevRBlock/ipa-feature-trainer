@@ -600,6 +600,10 @@ function displayFeatureAnswer(
   return `[${value}${feature}]`;
 }
 
+function formatCategory(category: SoundCategory): string {
+  return category === "consonant" ? "Consonant" : "Vowel";
+}
+
 function App() {
   const [currentSound, setCurrentSound] = useState<Sound>(
   () => {
@@ -857,491 +861,595 @@ const vowelSounds = sounds.filter(
   (sound) => sound.category === "vowel",
 );
 
-return (
-  <div className="app-layout">
-    <aside className="sound-selector">
-      <div className="selector-heading">
-        <div>
-          <h2>Included sounds</h2>
 
-          <p>
-            {selectedSymbols.length}/{sounds.length} selected
+  return (
+    <div className={`app-layout ${currentSound.category}-theme`}>
+      <aside className="sound-selector">
+        <div className="selector-heading">
+          <p className="eyebrow">Sound inventory</p>
+          <h2>Choose your practice set</h2>
+
+          <div className="selector-count">
+            <strong>{selectedSymbols.length}</strong>
+            <span>of {sounds.length} sounds active</span>
+          </div>
+        </div>
+
+        <div className="selector-actions">
+          <button type="button" onClick={selectAllSounds}>
+            Select all
+          </button>
+
+          <button type="button" onClick={clearAllSounds}>
+            Clear all
+          </button>
+        </div>
+
+        {selectedSymbols.length === 0 && (
+          <p className="selection-warning">
+            Select at least one sound.
           </p>
-        </div>
-      </div>
+        )}
 
-      <div className="selector-actions">
-        <button
-          type="button"
-          onClick={selectAllSounds}
-        >
-          Select all
-        </button>
+        <section className="sound-group">
+          <h3>Consonants</h3>
 
-        <button
-          type="button"
-          onClick={clearAllSounds}
-        >
-          Clear all
-        </button>
-      </div>
-
-      {selectedSymbols.length === 0 && (
-        <p className="selection-warning">
-          Select at least one sound.
-        </p>
-      )}
-
-      <section className="sound-group">
-        <h3>Consonants</h3>
-
-        <div className="sound-checkbox-list">
-          {consonantSounds.map((sound) => (
-            <label
-              className="sound-checkbox"
-              key={sound.symbol}
-            >
-              <input
-                type="checkbox"
-                checked={selectedSymbols.includes(
-                  sound.symbol,
-                )}
-                onChange={() =>
-                  toggleSound(sound.symbol)
-                }
-              />
-
-              <span className="sidebar-symbol">
-                /{sound.symbol}/
-              </span>
-
-            </label>
-          ))}
-        </div>
-      </section>
-
-      <section className="sound-group">
-        <h3>Vowels</h3>
-
-        <div className="sound-checkbox-list">
-          {vowelSounds.map((sound) => (
-            <label
-              className="sound-checkbox"
-              key={sound.symbol}
-            >
-              <input
-                type="checkbox"
-                checked={selectedSymbols.includes(
-                  sound.symbol,
-                )}
-                onChange={() =>
-                  toggleSound(sound.symbol)
-                }
-              />
-
-              <span className="sidebar-symbol">
-                /{sound.symbol}/
-              </span>
-
-            </label>
-          ))}
-        </div>
-      </section>
-    </aside>
-
-    <main className="app">
-      <header className="app-header">
-  <h1>IPA Feature Trainer</h1>
-
-  <div className="score">
-    Score: {score.correct}/{score.total}
-  </div>
-</header>
-
-  <p className="sound-instructions">
-  Select + or − for binary features. For consonants,
-  check every applicable place node.
-</p>
-
-<section className="sound-card">
-  <div className="ipa-symbol">
-    /{currentSound.symbol}/
-  </div>
-</section>
-
-      <section className="features">
-
-        {featureNames.map((feature) => {
-          const selectedValue = answers[feature];
-
-          const isIncorrect =
-            result !== null &&
-            selectedValue !==
-              currentSound.features[feature];
-
-          return (
-            <div
-              className={`feature-row ${
-                isIncorrect ? "incorrect-row" : ""
-              }`}
-              key={feature}
-            >
-              <span className="feature-name">
-                [±{feature}]
-              </span>
-
-              <div className="feature-buttons">
-                <button
-                  type="button"
-                  className={
-                    selectedValue === "+"
-                      ? "selected"
-                      : ""
+          <div className="sound-checkbox-list">
+            {consonantSounds.map((sound) => (
+              <label
+                className={`sound-checkbox ${
+                  selectedSymbols.includes(sound.symbol)
+                    ? "sound-checkbox-active"
+                    : ""
+                }`}
+                key={sound.symbol}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedSymbols.includes(
+                    sound.symbol,
+                  )}
+                  onChange={() =>
+                    toggleSound(sound.symbol)
                   }
-                  onClick={() =>
-                    selectValue(feature, "+")
-                  }
-                  disabled={result !== null}
-                >
-                  +
-                </button>
+                />
 
-                <button
-                  type="button"
-                  className={
-                    selectedValue === "-"
-                      ? "selected"
-                      : ""
-                  }
-                  onClick={() =>
-                    selectValue(feature, "-")
-                  }
-                  disabled={result !== null}
-                >
-                  −
-                </button>
-              </div>
-
-              {result !== null && (
-                <span className="correct-value">
-                  Correct: [
-                  {currentSound.features[feature]}
-                  {feature}]
+                <span className="sidebar-symbol">
+                  /{sound.symbol}/
                 </span>
-              )}
+              </label>
+            ))}
+          </div>
+        </section>
+
+        <section className="sound-group">
+          <h3>Vowels</h3>
+
+          <div className="sound-checkbox-list">
+            {vowelSounds.map((sound) => (
+              <label
+                className={`sound-checkbox ${
+                  selectedSymbols.includes(sound.symbol)
+                    ? "sound-checkbox-active"
+                    : ""
+                }`}
+                key={sound.symbol}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedSymbols.includes(
+                    sound.symbol,
+                  )}
+                  onChange={() =>
+                    toggleSound(sound.symbol)
+                  }
+                />
+
+                <span className="sidebar-symbol">
+                  /{sound.symbol}/
+                </span>
+              </label>
+            ))}
+          </div>
+        </section>
+      </aside>
+
+      <main className="app">
+        <header className="app-header">
+          <div>
+            <p className="eyebrow">
+              Interactive phonology lab
+            </p>
+
+            <h1>IPA Feature Trainer</h1>
+
+            <p>
+              Assign binary features and, for consonants,
+              identify each active place node and its dependent
+              features.
+            </p>
+          </div>
+
+          <div
+            className="score"
+            aria-label={`Score ${score.correct} out of ${score.total}`}
+          >
+            <span className="score-label">Score</span>
+            <strong className="score-value">
+              {score.correct}
+              <span>/{score.total}</span>
+            </strong>
+          </div>
+        </header>
+
+        <section className="sound-card" aria-live="polite">
+          <div className="sound-card-header">
+            <span className="sound-card-label">
+              Current sound
+            </span>
+
+            <span className="category-badge">
+              {formatCategory(currentSound.category)}
+            </span>
+          </div>
+
+          <div className="sound-stage">
+            <span
+              className="sound-orbit orbit-one"
+              aria-hidden="true"
+            />
+            <span
+              className="sound-orbit orbit-two"
+              aria-hidden="true"
+            />
+
+            <div className="waveform" aria-hidden="true">
+              {Array.from({ length: 11 }, (_, index) => (
+                <span key={index} />
+              ))}
             </div>
-          );
-        })}
-      </section>
 
-      {currentSound.category === "consonant" && (
-        <section className="place-groups">
-  <div className="place-grid">
-            {placeNames.map((place) => {
-              const isChecked =
-                selectedPlaces[place];
+            <div className="ipa-symbol">
+              /{currentSound.symbol}/
+            </div>
+          </div>
 
-              const expectedPlaceFeatures =
-                currentSound.places?.[place];
+          <p className="sound-card-note">
+            {currentSound.category === "consonant"
+              ? "Binary features + place nodes"
+              : "Binary vowel features"}
+          </p>
+        </section>
 
-              const shouldBeChecked =
-                expectedPlaceFeatures !== undefined;
+        <section className="feature-workspace">
+          <div className="section-heading">
+            <div>
+              <p className="section-kicker">Step 1</p>
+              <h2>Set the binary features</h2>
+            </div>
 
-              const placeIsIncorrect =
+            <p className="section-help">
+              Select either + or − for every feature.
+            </p>
+          </div>
+
+          <div className="features">
+            {featureNames.map((feature, index) => {
+              const selectedValue = answers[feature];
+
+              const isIncorrect =
                 result !== null &&
-                isChecked !== shouldBeChecked;
-
-              const showDependentFeatures =
-                isChecked ||
-                (result !== null && shouldBeChecked);
+                selectedValue !==
+                  currentSound.features[feature];
 
               return (
                 <div
-                  className={`place-section ${
-                    placeIsIncorrect
-                      ? "incorrect-place"
-                      : ""
+                  className={`feature-row ${
+                    isIncorrect ? "incorrect-row" : ""
                   }`}
-                  key={place}
+                  key={feature}
                 >
-                  <div className="place-header">
-                    <label className="place-toggle">
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() =>
-                          togglePlace(place)
-                        }
-                        disabled={result !== null}
-                      />
+                  <div className="feature-heading">
+                    <span className="feature-index">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
 
-                      <span>
-                        {place.toUpperCase()}
-                      </span>
-                    </label>
-
-                    {result !== null && (
-                      <span className="correct-value">
-                        Correct:{" "}
-                        {shouldBeChecked
-                          ? "checked"
-                          : "not checked"}
-                      </span>
-                    )}
+                    <span className="feature-name">
+                      [±{feature}]
+                    </span>
                   </div>
 
-                  {showDependentFeatures && (
-                    <div className="place-details">
-                      {placeDefinitions[place].map(
-                        (feature) => {
-                          const answerKey =
-                            placeAnswerKey(
-                              place,
-                              feature,
-                            );
+                  <div
+                    className="feature-buttons"
+                    aria-label={`Select a value for ${feature}`}
+                  >
+                    <button
+                      type="button"
+                      className={
+                        selectedValue === "+"
+                          ? "selected"
+                          : ""
+                      }
+                      onClick={() =>
+                        selectValue(feature, "+")
+                      }
+                      disabled={result !== null}
+                      aria-label={`Positive ${feature}`}
+                    >
+                      +
+                    </button>
 
-                          const selectedValue =
-                            answers[answerKey];
+                    <button
+                      type="button"
+                      className={
+                        selectedValue === "-"
+                          ? "selected"
+                          : ""
+                      }
+                      onClick={() =>
+                        selectValue(feature, "-")
+                      }
+                      disabled={result !== null}
+                      aria-label={`Negative ${feature}`}
+                    >
+                      −
+                    </button>
+                  </div>
 
-                          const expectedValue =
-                            expectedPlaceFeatures?.[
-                              feature
-                            ];
-
-                          const featureIsIncorrect =
-                            result !== null &&
-                            selectedValue !==
-                              expectedValue;
-
-                          return (
-                            <div
-                              className={`feature-row ${
-                                featureIsIncorrect
-                                  ? "incorrect-row"
-                                  : ""
-                              }`}
-                              key={feature}
-                            >
-                              <span className="feature-name">
-                                [±{feature}]
-                              </span>
-
-                              <div className="feature-buttons">
-                                <button
-                                  type="button"
-                                  className={
-                                    selectedValue ===
-                                    "+"
-                                      ? "selected"
-                                      : ""
-                                  }
-                                  onClick={() =>
-                                    selectValue(
-                                      answerKey,
-                                      "+",
-                                    )
-                                  }
-                                  disabled={
-                                    result !== null
-                                  }
-                                >
-                                  +
-                                </button>
-
-                                <button
-                                  type="button"
-                                  className={
-                                    selectedValue ===
-                                    "-"
-                                      ? "selected"
-                                      : ""
-                                  }
-                                  onClick={() =>
-                                    selectValue(
-                                      answerKey,
-                                      "-",
-                                    )
-                                  }
-                                  disabled={
-                                    result !== null
-                                  }
-                                >
-                                  −
-                                </button>
-                              </div>
-
-                              {result !== null &&
-                                expectedValue && (
-                                  <span className="correct-value">
-                                    Correct: [
-                                    {expectedValue}
-                                    {feature}]
-                                  </span>
-                                )}
-
-                              {result !== null &&
-                                !expectedValue && (
-                                  <span className="correct-value">
-                                    Not applicable
-                                  </span>
-                                )}
-                            </div>
-                          );
-                        },
-                      )}
-                    </div>
+                  {result !== null && (
+                    <span className="correct-value">
+                      Correct: [
+                      {currentSound.features[feature]}
+                      {feature}]
+                    </span>
                   )}
                 </div>
               );
             })}
           </div>
         </section>
-      )}
 
-      {result === null && (
-  <div className="action-buttons">
-    <button
-      type="button"
-      className="secondary-button"
-      onClick={showNewRandomSound}
-    >
-      New random sound
-    </button>
+        {currentSound.category === "consonant" && (
+          <section className="place-groups">
+            <div className="section-heading">
+              <div>
+                <p className="section-kicker">Step 2</p>
+                <h2>Choose the place nodes</h2>
+              </div>
 
-    <button
-      type="button"
-      className="main-button"
-      onClick={checkAnswer}
-    >
-      Submit answer
-    </button>
-  </div>
-)}
+              <p className="section-help">
+                Open every active node, then assign its
+                dependent features.
+              </p>
+            </div>
 
-      {result !== null && (
-        <section
-          className={`feedback ${
-            result === "correct"
-              ? "correct-feedback"
-              : "incorrect-feedback"
-          }`}
-        >
-          <h2>
-            {result === "correct"
-              ? "Correct"
-              : "Some features were incorrect"}
-          </h2>
+            <div className="place-grid">
+              {placeNames.map((place, placeIndex) => {
+                const isChecked = selectedPlaces[place];
 
-          <p>
-            /{currentSound.symbol}/ is a{" "}
-            <strong>
-              {currentSound.description}
-            </strong>
-            .
-          </p>
+                const expectedPlaceFeatures =
+                  currentSound.places?.[place];
 
-          <button
-  type="button"
-  className="main-button"
-  onClick={showNewRandomSound}
->
-  Next random sound
-</button>
-        </section>
-      )}
+                const shouldBeChecked =
+                  expectedPlaceFeatures !== undefined;
 
-      <section className="history-panel">
-  <div className="history-header">
-    <div>
-      <h2>Attempt history</h2>
+                const placeIsIncorrect =
+                  result !== null &&
+                  isChecked !== shouldBeChecked;
 
-      <p>
-        Submitted answers are saved on this device.
-      </p>
-    </div>
+                const showDependentFeatures =
+                  isChecked ||
+                  (result !== null && shouldBeChecked);
 
-    {history.length > 0 && (
-      <button
-        type="button"
-        className="clear-history-button"
-        onClick={clearHistory}
-      >
-        Clear history
-      </button>
-    )}
-  </div>
+                return (
+                  <div
+                    className={`place-section place-${place} ${
+                      isChecked ? "place-section-active" : ""
+                    } ${
+                      placeIsIncorrect
+                        ? "incorrect-place"
+                        : ""
+                    }`}
+                    key={place}
+                  >
+                    <div className="place-header">
+                      <label className="place-toggle">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => togglePlace(place)}
+                          disabled={result !== null}
+                        />
 
-  {history.length === 0 ? (
-    <p className="history-empty">
-      No answers have been submitted yet.
-    </p>
-  ) : (
-    <div className="history-list">
-      {history.map((entry) => (
-        <article
-          className={`history-entry ${
-            entry.isCorrect
-              ? "correct-history-entry"
-              : "incorrect-history-entry"
-          }`}
-          key={entry.id}
-        >
-          <div className="history-entry-heading">
-            <span className="history-symbol">
-              /{entry.symbol}/
-            </span>
+                        <span className="place-number">
+                          {String(placeIndex + 1).padStart(
+                            2,
+                            "0",
+                          )}
+                        </span>
 
-            <span className="history-result">
-              {entry.isCorrect
+                        <span className="place-name">
+                          {place.toUpperCase()}
+                        </span>
+                      </label>
+
+                      <span className="place-feature-count">
+                        {placeDefinitions[place].length}{" "}
+                        {placeDefinitions[place].length === 1
+                          ? "feature"
+                          : "features"}
+                      </span>
+
+                      {result !== null && (
+                        <span className="correct-value">
+                          Correct:{" "}
+                          {shouldBeChecked
+                            ? "checked"
+                            : "not checked"}
+                        </span>
+                      )}
+                    </div>
+
+                    {showDependentFeatures && (
+                      <div className="place-details">
+                        {placeDefinitions[place].map(
+                          (feature) => {
+                            const answerKey = placeAnswerKey(
+                              place,
+                              feature,
+                            );
+
+                            const selectedValue =
+                              answers[answerKey];
+
+                            const expectedValue =
+                              expectedPlaceFeatures?.[feature];
+
+                            const featureIsIncorrect =
+                              result !== null &&
+                              selectedValue !== expectedValue;
+
+                            return (
+                              <div
+                                className={`feature-row dependent-feature-row ${
+                                  featureIsIncorrect
+                                    ? "incorrect-row"
+                                    : ""
+                                }`}
+                                key={feature}
+                              >
+                                <div className="feature-heading">
+                                  <span className="dependent-dot" />
+
+                                  <span className="feature-name">
+                                    [±{feature}]
+                                  </span>
+                                </div>
+
+                                <div className="feature-buttons">
+                                  <button
+                                    type="button"
+                                    className={
+                                      selectedValue === "+"
+                                        ? "selected"
+                                        : ""
+                                    }
+                                    onClick={() =>
+                                      selectValue(
+                                        answerKey,
+                                        "+",
+                                      )
+                                    }
+                                    disabled={result !== null}
+                                    aria-label={`Positive ${feature}`}
+                                  >
+                                    +
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className={
+                                      selectedValue === "-"
+                                        ? "selected"
+                                        : ""
+                                    }
+                                    onClick={() =>
+                                      selectValue(
+                                        answerKey,
+                                        "-",
+                                      )
+                                    }
+                                    disabled={result !== null}
+                                    aria-label={`Negative ${feature}`}
+                                  >
+                                    −
+                                  </button>
+                                </div>
+
+                                {result !== null &&
+                                  expectedValue && (
+                                    <span className="correct-value">
+                                      Correct: [{expectedValue}
+                                      {feature}]
+                                    </span>
+                                  )}
+
+                                {result !== null &&
+                                  !expectedValue && (
+                                    <span className="correct-value">
+                                      Not applicable
+                                    </span>
+                                  )}
+                              </div>
+                            );
+                          },
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {result === null ? (
+          <div className="action-buttons">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={showNewRandomSound}
+            >
+              New random sound
+            </button>
+
+            <button
+              type="button"
+              className="main-button"
+              onClick={checkAnswer}
+            >
+              Submit answer
+            </button>
+          </div>
+        ) : (
+          <section
+            className={`feedback ${
+              result === "correct"
+                ? "correct-feedback"
+                : "incorrect-feedback"
+            }`}
+          >
+            <p className="feedback-kicker">
+              Feature analysis
+            </p>
+
+            <h2>
+              {result === "correct"
                 ? "Correct"
-                : `${entry.errors.length} ${
-                    entry.errors.length === 1
-                      ? "error"
-                      : "errors"
-                  }`}
-            </span>
+                : "Some features were incorrect"}
+            </h2>
+
+            <p>
+              <span className="feedback-symbol">
+                /{currentSound.symbol}/
+              </span>{" "}
+              is a{" "}
+              <strong>{currentSound.description}</strong>.
+            </p>
+
+            <button
+              type="button"
+              className="main-button"
+              onClick={showNewRandomSound}
+            >
+              Next random sound
+            </button>
+          </section>
+        )}
+
+        <section className="history-panel">
+          <div className="history-header">
+            <div>
+              <p className="section-kicker">
+                Saved locally
+              </p>
+              <h2>Attempt history</h2>
+
+              <p>
+                Your 50 most recent submissions are stored on
+                this device.
+              </p>
+            </div>
+
+            {history.length > 0 && (
+              <button
+                type="button"
+                className="clear-history-button"
+                onClick={clearHistory}
+              >
+                Clear history
+              </button>
+            )}
           </div>
 
-          <p className="history-description">
-            {entry.description}
-          </p>
-
-          <p className="history-time">
-            {new Date(
-              entry.submittedAt,
-            ).toLocaleString()}
-          </p>
-
-          {!entry.isCorrect && (
-            <div className="history-errors">
-              {entry.errors.map((error, index) => (
-                <div
-                  className="history-error"
-                  key={`${entry.id}-${index}`}
+          {history.length === 0 ? (
+            <p className="history-empty">
+              No answers have been submitted yet.
+            </p>
+          ) : (
+            <div className="history-list">
+              {history.map((entry) => (
+                <article
+                  className={`history-entry ${
+                    entry.isCorrect
+                      ? "correct-history-entry"
+                      : "incorrect-history-entry"
+                  }`}
+                  key={entry.id}
                 >
-                  <strong>
-                    {error.feature}
-                  </strong>
+                  <div className="history-entry-heading">
+                    <div className="history-sound-block">
+                      <span className="history-symbol">
+                        /{entry.symbol}/
+                      </span>
 
-                  <span>
-                    Your answer: {error.selected}
-                  </span>
+                      <div>
+                        <span className="history-caption">
+                          Feature analysis
+                        </span>
+                        <p className="history-description">
+                          {entry.description}
+                        </p>
+                      </div>
+                    </div>
 
-                  <span>
-                    Correct: {error.correct}
-                  </span>
-                </div>
+                    <span className="history-result">
+                      {entry.isCorrect
+                        ? "Correct"
+                        : `${entry.errors.length} ${
+                            entry.errors.length === 1
+                              ? "error"
+                              : "errors"
+                          }`}
+                    </span>
+                  </div>
+
+                  <p className="history-time">
+                    {new Date(
+                      entry.submittedAt,
+                    ).toLocaleString()}
+                  </p>
+
+                  {!entry.isCorrect && (
+                    <div className="history-errors">
+                      {entry.errors.map(
+                        (error, index) => (
+                          <div
+                            className="history-error"
+                            key={`${entry.id}-${index}`}
+                          >
+                            <strong>{error.feature}</strong>
+
+                            <span>
+                              Your answer: {error.selected}
+                            </span>
+
+                            <span>
+                              Correct: {error.correct}
+                            </span>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  )}
+                </article>
               ))}
             </div>
           )}
-        </article>
-      ))}
+        </section>
+      </main>
     </div>
-  )}
-</section>
-        </main>
-  </div>
-);
+  );
 }
 
 export default App;
