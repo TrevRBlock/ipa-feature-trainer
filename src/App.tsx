@@ -3,6 +3,11 @@ import "./App.css";
 
 type FeatureValue = "+" | "-";
 type SoundCategory = "consonant" | "vowel";
+type PracticePreset =
+  | "all"
+  | "consonants"
+  | "vowels"
+  | "custom";
 type FeatureMap = Record<string, FeatureValue>;
 type PlaceName = "labial" | "coronal" | "dorsal";
 
@@ -69,6 +74,35 @@ function createEmptyPlaces(): Record<PlaceName, boolean> {
     coronal: false,
     dorsal: false,
   };
+}
+
+function getOrdinaryFeatureNames(
+  sound: Sound,
+): readonly string[] {
+  return sound.category === "consonant"
+    ? consonantFeatureNames
+    : vowelFeatureNames;
+}
+
+function createActiveFeatures():
+  Record<string, boolean> {
+  const active: Record<string, boolean> = {};
+  const ordinaryFeatures = new Set<string>([
+    ...consonantFeatureNames,
+    ...vowelFeatureNames,
+  ]);
+
+  for (const feature of ordinaryFeatures) {
+    active[feature] = true;
+  }
+
+  for (const place of placeNames) {
+    for (const feature of placeDefinitions[place]) {
+      active[placeAnswerKey(place, feature)] = true;
+    }
+  }
+
+  return active;
 }
 
 function makeFeatureMap(
@@ -534,6 +568,20 @@ const sounds: Sound[] = [
 
 const allSoundSymbols = sounds.map((sound) => sound.symbol);
 
+const consonantSymbols = sounds
+  .filter(
+    (sound) =>
+      sound.category === "consonant",
+  )
+  .map((sound) => sound.symbol);
+
+const vowelSymbols = sounds
+  .filter(
+    (sound) =>
+      sound.category === "vowel",
+  )
+  .map((sound) => sound.symbol);
+
 function getRandomSound(
   selectedSymbols: readonly string[],
   excludedSymbol?: string,
@@ -571,7 +619,26 @@ function placeAnswerKey(
 }
 
 const HISTORY_STORAGE_KEY =
-  "ipa-feature-trainer-history";
+  "ipa-feature-trainer-history-v3";
+
+const FEATURE_FILTER_STORAGE_KEY =
+  "ipa-feature-trainer-feature-filters-v3";
+
+function loadActiveFeatures(): Record<string, boolean> {
+  const defaults = createActiveFeatures();
+
+  try {
+    const stored = localStorage.getItem(
+      FEATURE_FILTER_STORAGE_KEY,
+    );
+
+    return stored
+      ? { ...defaults, ...JSON.parse(stored) }
+      : defaults;
+  } catch {
+    return defaults;
+  }
+}
 
 function loadHistory(): HistoryEntry[] {
   try {
@@ -619,9 +686,21 @@ function App() {
   string[]
 >(() => [...allSoundSymbols]);
 
+  const [
+    activePracticeSet,
+    setActivePracticeSet,
+  ] = useState<PracticePreset>("all");
+
   const [answers, setAnswers] = useState<
     Record<string, FeatureValue | undefined>
   >({});
+
+  const [
+    activeFeatures,
+    setActiveFeatures,
+  ] = useState<Record<string, boolean>>(
+    () => loadActiveFeatures(),
+  );
 
   const [selectedPlaces, setSelectedPlaces] = useState<
     Record<PlaceName, boolean>
@@ -640,12 +719,19 @@ function App() {
   () => loadHistory(),
   );
 
-    useEffect(() => {
+  useEffect(() => {
     localStorage.setItem(
       HISTORY_STORAGE_KEY,
       JSON.stringify(history),
     );
   }, [history]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      FEATURE_FILTER_STORAGE_KEY,
+      JSON.stringify(activeFeatures),
+    );
+  }, [activeFeatures]);
 
   const featureNames =
     currentSound.category === "consonant"
@@ -664,6 +750,117 @@ function App() {
       ...previousAnswers,
       [feature]: value,
     }));
+  }
+
+  function toggleFeature(
+    feature: string,
+  ) {
+    if (result !== null) {
+      return;
+    }
+
+    const willBeActive =
+      !activeFeatures[feature];
+
+    setActiveFeatures(
+      (previousFeatures) => ({
+        ...previousFeatures,
+        [feature]: willBeActive,
+      }),
+    );
+
+    if (!willBeActive) {
+      setAnswers((previousAnswers) => {
+        const nextAnswers = {
+          ...previousAnswers,
+        };
+
+        delete nextAnswers[feature];
+        return nextAnswers;
+      });
+    }
+  }
+
+  function setAllOrdinaryFeatures(
+    active: boolean,
+  ) {
+    if (result !== null) {
+      return;
+    }
+
+    const featureNames =
+      getOrdinaryFeatureNames(currentSound);
+
+    setActiveFeatures((previousFeatures) => {
+      const nextFeatures = {
+        ...previousFeatures,
+      };
+
+      for (const feature of featureNames) {
+        nextFeatures[feature] = active;
+      }
+
+      return nextFeatures;
+    });
+
+    if (!active) {
+      setAnswers((previousAnswers) => {
+        const nextAnswers = {
+          ...previousAnswers,
+        };
+
+        for (const feature of featureNames) {
+          delete nextAnswers[feature];
+        }
+
+        return nextAnswers;
+      });
+    }
+  }
+
+  function setAllDependentFeatures(
+    active: boolean,
+  ) {
+    if (
+      result !== null ||
+      currentSound.category !== "consonant"
+    ) {
+      return;
+    }
+
+    const keys = placeNames.flatMap(
+      (place) =>
+        placeDefinitions[place].map(
+          (feature) =>
+            placeAnswerKey(place, feature),
+        ),
+    );
+
+    setActiveFeatures((previousFeatures) => {
+      const nextFeatures = {
+        ...previousFeatures,
+      };
+
+      for (const key of keys) {
+        nextFeatures[key] = active;
+      }
+
+      return nextFeatures;
+    });
+
+    if (!active) {
+      setAnswers((previousAnswers) => {
+        const nextAnswers = {
+          ...previousAnswers,
+        };
+
+        for (const key of keys) {
+          delete nextAnswers[key];
+        }
+
+        return nextAnswers;
+      });
+    }
   }
 
   function togglePlace(place: PlaceName) {
@@ -694,38 +891,107 @@ function App() {
   }
 
 
-  function toggleSound(symbol: string) {
-  setSelectedSymbols((previousSymbols) => {
-    if (previousSymbols.includes(symbol)) {
-      return previousSymbols.filter(
-        (selectedSymbol) =>
-          selectedSymbol !== symbol,
-      );
+  function applyPracticeSet(
+    symbols: string[],
+    preset: PracticePreset,
+  ) {
+    setSelectedSymbols(symbols);
+    setActivePracticeSet(preset);
+
+    if (
+      symbols.length > 0 &&
+      !symbols.includes(currentSound.symbol)
+    ) {
+      const nextSound = getRandomSound(symbols);
+
+      if (nextSound) {
+        setCurrentSound(nextSound);
+        setAnswers({});
+        setSelectedPlaces(
+          createEmptyPlaces(),
+        );
+        setResult(null);
+      }
     }
+  }
 
-    return [...previousSymbols, symbol];
-  });
-}
+  function toggleSound(symbol: string) {
+    const nextSymbols =
+      selectedSymbols.includes(symbol)
+        ? selectedSymbols.filter(
+            (selectedSymbol) =>
+              selectedSymbol !== symbol,
+          )
+        : [
+            ...selectedSymbols,
+            symbol,
+          ];
 
-function clearHistory() {
-  setHistory([]);
-}
+    applyPracticeSet(
+      nextSymbols,
+      "custom",
+    );
+  }
 
-function selectAllSounds() {
-  setSelectedSymbols([...allSoundSymbols]);
-}
+  function clearHistory() {
+    setHistory([]);
+  }
 
-function clearAllSounds() {
-  setSelectedSymbols([]);
-}
+  function selectAllSounds() {
+    applyPracticeSet(
+      [...allSoundSymbols],
+      "all",
+    );
+  }
+
+  function selectJustConsonants() {
+    applyPracticeSet(
+      [...consonantSymbols],
+      "consonants",
+    );
+  }
+
+  function selectJustVowels() {
+    applyPracticeSet(
+      [...vowelSymbols],
+      "vowels",
+    );
+  }
+
+  function clearAllSounds() {
+    applyPracticeSet(
+      [],
+      "custom",
+    );
+  }
 
   function checkAnswer() {
+  const ordinaryActiveCount =
+    featureNames.filter(
+      (feature) =>
+        activeFeatures[feature] ?? true,
+    ).length;
+
+  if (
+    currentSound.category === "vowel" &&
+    ordinaryActiveCount === 0
+  ) {
+    alert(
+      "Turn on at least one vowel feature before submitting.",
+    );
+    return;
+  }
+
   const errors: HistoryError[] = [];
 
   /*
    * Check the ordinary binary features.
    */
   for (const feature of featureNames) {
+    if (!activeFeatures[feature]) {
+      continue;
+    }
+
     const selectedValue = answers[feature];
     const correctValue =
       currentSound.features[feature];
@@ -781,6 +1047,10 @@ function clearAllSounds() {
             place,
             feature,
           );
+
+          if (!activeFeatures[answerKey]) {
+            continue;
+          }
 
           const selectedValue = answers[answerKey];
           const correctValue =
@@ -874,6 +1144,118 @@ const vowelSounds = sounds.filter(
             <span>of {sounds.length} sounds active</span>
           </div>
         </div>
+
+        <section className="quick-filter-section">
+          <h3>Quick filters</h3>
+
+          <div className="quick-filter-grid">
+            <button
+              type="button"
+              className={
+                activePracticeSet === "all"
+                  ? "active"
+                  : ""
+              }
+              onClick={selectAllSounds}
+            >
+              <span>All sounds</span>
+              <small>{allSoundSymbols.length}</small>
+            </button>
+
+            <button
+              type="button"
+              className={
+                activePracticeSet ===
+                "consonants"
+                  ? "active"
+                  : ""
+              }
+              onClick={selectJustConsonants}
+            >
+              <span>Just consonants</span>
+              <small>{consonantSymbols.length}</small>
+            </button>
+
+            <button
+              type="button"
+              className={
+                activePracticeSet === "vowels"
+                  ? "active"
+                  : ""
+              }
+              onClick={selectJustVowels}
+            >
+              <span>Just vowels</span>
+              <small>{vowelSymbols.length}</small>
+            </button>
+          </div>
+        </section>
+
+        <section className="feature-filter-section">
+          <div className="feature-filter-heading">
+            <div>
+              <h3>Feature filters</h3>
+              <p>Only checked features appear in the workspace and are graded.</p>
+            </div>
+            <span>
+              {featureNames.filter(
+                (feature) => activeFeatures[feature] ?? true,
+              ).length}/{featureNames.length}
+            </span>
+          </div>
+
+          <div className="feature-filter-actions">
+            <button type="button" onClick={() => setAllOrdinaryFeatures(true)} disabled={result !== null}>Check all</button>
+            <button type="button" onClick={() => setAllOrdinaryFeatures(false)} disabled={result !== null}>Uncheck all</button>
+          </div>
+
+          <div className="feature-filter-list">
+            {featureNames.map((feature) => {
+              const isActive = activeFeatures[feature] ?? true;
+              return (
+                <label className={`feature-filter-option ${isActive ? "active" : ""}`} key={feature}>
+                  <input type="checkbox" checked={isActive} onChange={() => toggleFeature(feature)} disabled={result !== null} />
+                  <span className="feature-filter-check">{isActive ? "✓" : ""}</span>
+                  <span>[±{feature}]</span>
+                </label>
+              );
+            })}
+          </div>
+
+          {currentSound.category === "consonant" && (
+            <div className="dependent-filter-area">
+              <div className="dependent-filter-heading">
+                <div>
+                  <strong>Place-dependent features</strong>
+                  <small>These appear only inside an opened place node.</small>
+                </div>
+                <div className="feature-filter-actions compact">
+                  <button type="button" onClick={() => setAllDependentFeatures(true)} disabled={result !== null}>All</button>
+                  <button type="button" onClick={() => setAllDependentFeatures(false)} disabled={result !== null}>None</button>
+                </div>
+              </div>
+
+              {placeNames.map((place) => (
+                <div className="dependent-filter-group" key={place}>
+                  <h4>{place}</h4>
+                  <div className="feature-filter-list">
+                    {placeDefinitions[place].map((feature) => {
+                      const answerKey = placeAnswerKey(place, feature);
+                      const isActive = activeFeatures[answerKey] ?? true;
+                      return (
+                        <label className={`feature-filter-option ${isActive ? "active" : ""}`} key={answerKey}>
+                          <input type="checkbox" checked={isActive} onChange={() => toggleFeature(answerKey)} disabled={result !== null} />
+                          <span className="feature-filter-check">{isActive ? "✓" : ""}</span>
+                          <span>[±{feature}]</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
         <div className="selector-actions">
           <button type="button" onClick={selectAllSounds}>
@@ -1025,16 +1407,20 @@ const vowelSounds = sounds.filter(
           <div className="section-heading">
             <div>
               <p className="section-kicker">Step 1</p>
-              <h2>Set the binary features</h2>
+              <h2>Set the visible binary features</h2>
             </div>
 
             <p className="section-help">
-              Select either + or − for every feature.
+              The sidebar controls which features appear here and which are graded.
             </p>
           </div>
 
           <div className="features">
-            {featureNames.map((feature, index) => {
+            {featureNames
+              .filter(
+                (feature) => activeFeatures[feature] ?? true,
+              )
+              .map((feature, index) => {
               const selectedValue = answers[feature];
 
               const isIncorrect =
@@ -1057,6 +1443,7 @@ const vowelSounds = sounds.filter(
                     <span className="feature-name">
                       [±{feature}]
                     </span>
+
                   </div>
 
                   <div
@@ -1098,9 +1485,7 @@ const vowelSounds = sounds.filter(
 
                   {result !== null && (
                     <span className="correct-value">
-                      Correct: [
-                      {currentSound.features[feature]}
-                      {feature}]
+                      Correct: [{currentSound.features[feature]}{feature}]
                     </span>
                   )}
                 </div>
@@ -1118,8 +1503,7 @@ const vowelSounds = sounds.filter(
               </div>
 
               <p className="section-help">
-                Open every active node, then assign its
-                dependent features.
+                Open only the place node or nodes relevant to the sound. The sidebar controls which dependent features appear.
               </p>
             </div>
 
@@ -1174,10 +1558,12 @@ const vowelSounds = sounds.filter(
                       </label>
 
                       <span className="place-feature-count">
-                        {placeDefinitions[place].length}{" "}
-                        {placeDefinitions[place].length === 1
-                          ? "feature"
-                          : "features"}
+                        {placeDefinitions[place].filter(
+                          (feature) => activeFeatures[placeAnswerKey(place, feature)] ?? true,
+                        ).length}{" "}
+                        {placeDefinitions[place].filter(
+                          (feature) => activeFeatures[placeAnswerKey(place, feature)] ?? true,
+                        ).length === 1 ? "feature" : "features"}
                       </span>
 
                       {result !== null && (
@@ -1192,8 +1578,11 @@ const vowelSounds = sounds.filter(
 
                     {showDependentFeatures && (
                       <div className="place-details">
-                        {placeDefinitions[place].map(
-                          (feature) => {
+                        {placeDefinitions[place]
+                          .filter(
+                            (feature) => activeFeatures[placeAnswerKey(place, feature)] ?? true,
+                          )
+                          .map((feature) => {
                             const answerKey = placeAnswerKey(
                               place,
                               feature,
@@ -1212,9 +1601,7 @@ const vowelSounds = sounds.filter(
                             return (
                               <div
                                 className={`feature-row dependent-feature-row ${
-                                  featureIsIncorrect
-                                    ? "incorrect-row"
-                                    : ""
+                                  featureIsIncorrect ? "incorrect-row" : ""
                                 }`}
                                 key={feature}
                               >
@@ -1224,6 +1611,7 @@ const vowelSounds = sounds.filter(
                                   <span className="feature-name">
                                     [±{feature}]
                                   </span>
+
                                 </div>
 
                                 <div className="feature-buttons">
@@ -1266,24 +1654,18 @@ const vowelSounds = sounds.filter(
                                   </button>
                                 </div>
 
-                                {result !== null &&
-                                  expectedValue && (
-                                    <span className="correct-value">
-                                      Correct: [{expectedValue}
-                                      {feature}]
-                                    </span>
-                                  )}
+                                {result !== null && expectedValue && (
+                                  <span className="correct-value">
+                                    Correct: [{expectedValue}{feature}]
+                                  </span>
+                                )}
 
-                                {result !== null &&
-                                  !expectedValue && (
-                                    <span className="correct-value">
-                                      Not applicable
-                                    </span>
-                                  )}
+                                {result !== null && !expectedValue && (
+                                  <span className="correct-value">Not applicable</span>
+                                )}
                               </div>
                             );
-                          },
-                        )}
+                          })}
                       </div>
                     )}
                   </div>
