@@ -451,7 +451,6 @@ const sounds: Sound[] = [
     "j",
     "voiced palatal glide",
     [
-      "consonantal",
       "sonorant",
       "voice",
       "continuant",
@@ -469,7 +468,6 @@ const sounds: Sound[] = [
     "w",
     "voiced labiovelar glide",
     [
-      "consonantal",
       "sonorant",
       "voice",
       "continuant",
